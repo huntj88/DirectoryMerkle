@@ -1,6 +1,8 @@
 package me.jameshunt.merkle
 
+import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import org.apache.commons.codec.digest.DigestUtils
 import java.io.File
 
@@ -8,18 +10,19 @@ fun main() {
     val rootFile = File("src/main/resources")
     val tree = Tree(rootFile)
     println(tree.isSame(Tree(rootFile)))
-    println(tree.root)
 
-    ObjectMapper().writeValueAsString(tree).let { println(it) }
+    ObjectMapper()
+        .apply { this.configure(SerializationFeature.INDENT_OUTPUT, true) }
+        .writeValueAsString(tree.root).let { println(it) }
 }
 
 class Tree(private val folder: File) {
-    val root: FolderNode by lazy { folder.buildTree() }
+    internal val root: FolderNode by lazy { folder.buildTree() }
 
     fun isSame(other: Tree): Boolean = root.hash == other.root.hash
 
     private fun File.buildTree(): FolderNode {
-        val rootNode = FolderNode(this.parentFile.absolutePath, mutableListOf())
+        val rootNode = FolderNode("", mutableListOf())
 
         this
             .walk()
@@ -37,7 +40,7 @@ class Tree(private val folder: File) {
                 }
             }
 
-        return rootNode
+        return rootNode.children.first() as FolderNode
     }
 
     private fun FolderNode.findFolder(path: String): FolderNode {
