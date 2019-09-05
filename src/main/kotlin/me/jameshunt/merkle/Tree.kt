@@ -1,6 +1,5 @@
 package me.jameshunt.merkle
 
-import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import org.apache.commons.codec.digest.DigestUtils
@@ -13,60 +12,62 @@ fun main() {
 
     ObjectMapper()
         .apply { this.configure(SerializationFeature.INDENT_OUTPUT, true) }
-        .writeValueAsString(tree.root).let { println(it) }
+        .writeValueAsString(tree.folderNode).let { println(it) }
 }
 
-class Tree(private val folder: File) {
-    internal val root: FolderNode by lazy { folder.buildTree() }
+class Tree(internal val folderNode: FolderNode) {
 
-    fun isSame(other: Tree): Boolean = root.hash == other.root.hash
+    constructor(folder: File) : this(folder.buildTree())
 
-    private fun File.buildTree(): FolderNode {
-        val rootNode = FolderNode("", mutableListOf())
+    fun isSame(other: Tree): Boolean = folderNode.hash == other.folderNode.hash
+}
 
-        this
-            .walk()
-            .onEnter { file ->
-                val parentFolder = rootNode.findFolder(file.parentFile.absolutePath)
-                parentFolder.children.add(FolderNode(file.absolutePath, mutableListOf()))
 
-                true
-            }
-            .onFail { file, ioException -> ioException.printStackTrace() }
-            .forEach {
-                if (it.isFile) {
-                    val parentFolder = rootNode.findFolder(it.parentFile.absolutePath)
-                    parentFolder.children.add(FileNode(it.absolutePath, it.getHash()))
-                }
-            }
+private fun File.buildTree(): FolderNode {
+    val rootNode = FolderNode("", mutableListOf())
 
-        return rootNode.children.first() as FolderNode
-    }
+    this
+        .walk()
+        .onEnter { file ->
+            val parentFolder = rootNode.findFolder(file.parentFile.absolutePath)
+            parentFolder.children.add(FolderNode(file.absolutePath, mutableListOf()))
 
-    private fun FolderNode.findFolder(path: String): FolderNode {
-        val childFolders = this.children.mapNotNull { it as? FolderNode }
-
-        childFolders.forEach {
-            if (it.path == path) {
-                return it
+            true
+        }
+        .onFail { file, ioException -> ioException.printStackTrace() }
+        .forEach {
+            if (it.isFile) {
+                val parentFolder = rootNode.findFolder(it.parentFile.absolutePath)
+                parentFolder.children.add(FileNode(it.absolutePath, it.getHash()))
             }
         }
 
-        childFolders.forEach {
-            val childFolder = it.findFolder(path)
-            if (childFolder.path == path) {
-                return childFolder
-            }
+    return rootNode.children.first() as FolderNode
+}
+
+private fun FolderNode.findFolder(path: String): FolderNode {
+    val childFolders = this.children.mapNotNull { it as? FolderNode }
+
+    childFolders.forEach {
+        if (it.path == path) {
+            return it
         }
-
-        return this
     }
 
-    private fun File.getHash(): String = this.inputStream().use { inputStream ->
-        val contentHash = DigestUtils.md5Hex(inputStream)
-        val pathHash = DigestUtils.md5Hex(this.absolutePath)
-        DigestUtils.md5Hex(contentHash + pathHash)
+    childFolders.forEach {
+        val childFolder = it.findFolder(path)
+        if (childFolder.path == path) {
+            return childFolder
+        }
     }
+
+    return this
+}
+
+private fun File.getHash(): String = this.inputStream().use { inputStream ->
+    val contentHash = DigestUtils.md5Hex(inputStream)
+    val pathHash = DigestUtils.md5Hex(this.absolutePath)
+    DigestUtils.md5Hex(contentHash + pathHash)
 }
 
 interface Node {
