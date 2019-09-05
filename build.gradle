@@ -10,9 +10,11 @@ repositories {
 }
 
 dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 //    implementation "commons-codec.commons-codec:1.5"
     compile group: 'commons-codec', name: 'commons-codec', version: '1.5'
+//    implementation 'com.fasterxml.jackson.core:jackson-core:2.9.9'
 }
 
 compileKotlin {

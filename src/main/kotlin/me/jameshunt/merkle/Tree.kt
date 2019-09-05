@@ -1,63 +1,69 @@
 package me.jameshunt.merkle
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.codec.digest.DigestUtils
 import java.io.File
 
 fun main() {
-    walkFileDirectory()
+    val rootFile = File("src/main/resources")
+    val tree = Tree(rootFile)
+    println(tree.isSame(Tree(rootFile)))
+    println(tree.root)
+
+    ObjectMapper().writeValueAsString(tree).let { println(it) }
 }
 
-fun walkFileDirectory(): FolderNode {
+class Tree(private val folder: File) {
+    val root: FolderNode by lazy { folder.buildTree() }
 
-    val rootFile = File("src/main/resources")
-    val rootNode = FolderNode(rootFile.absolutePath, mutableListOf())
+    fun isSame(other: Tree): Boolean = root.hash == other.root.hash
 
-    rootFile
-        .also { println(it.absolutePath) }
-        .walk()
-        .onEnter { file ->
-            val parentFolder = rootNode.findFolder(file.absolutePath)
-            parentFolder.children.add(FolderNode(file.absolutePath, mutableListOf()))
+    private fun File.buildTree(): FolderNode {
+        val rootNode = FolderNode(this.parentFile.absolutePath, mutableListOf())
 
-            true
-        }
-        .onFail { file, ioException -> ioException.printStackTrace() }
-        .forEach {
-            if (it.isFile) {
-                val parentFolder = rootNode.findFolder(it.absolutePath)
-                parentFolder.children.add(FileNode(it.absolutePath, it.getHash()))
+        this
+            .walk()
+            .onEnter { file ->
+                val parentFolder = rootNode.findFolder(file.parentFile.absolutePath)
+                parentFolder.children.add(FolderNode(file.absolutePath, mutableListOf()))
+
+                true
+            }
+            .onFail { file, ioException -> ioException.printStackTrace() }
+            .forEach {
+                if (it.isFile) {
+                    val parentFolder = rootNode.findFolder(it.parentFile.absolutePath)
+                    parentFolder.children.add(FileNode(it.absolutePath, it.getHash()))
+                }
+            }
+
+        return rootNode
+    }
+
+    private fun FolderNode.findFolder(path: String): FolderNode {
+        val childFolders = this.children.mapNotNull { it as? FolderNode }
+
+        childFolders.forEach {
+            if (it.path == path) {
+                return it
             }
         }
 
-    return rootNode.also { println(it) }
-}
-
-fun FolderNode.findFolder(path: String): FolderNode {
-    val childFolders = this.children.mapNotNull { it as? FolderNode }
-
-    childFolders.forEach {
-        if (it.path == path) {
-            return it
+        childFolders.forEach {
+            val childFolder = it.findFolder(path)
+            if (childFolder.path == path) {
+                return childFolder
+            }
         }
+
+        return this
     }
 
-    childFolders.forEach {
-        val childFolder = it.findFolder(path)
-        if(childFolder.path == path) {
-            return childFolder
-        }
+    private fun File.getHash(): String = this.inputStream().use { inputStream ->
+        val contentHash = DigestUtils.md5Hex(inputStream)
+        val pathHash = DigestUtils.md5Hex(this.absolutePath)
+        DigestUtils.md5Hex(contentHash + pathHash)
     }
-
-    return this
-}
-
-fun File.getHash(): String = this.inputStream().use { inputStream ->
-    DigestUtils.md5Hex(DigestUtils.md5Hex(inputStream) + DigestUtils.md5(this.absolutePath))
-}
-
-class Tree {
-    val root: FolderNode = TODO()
-
 }
 
 interface Node {
