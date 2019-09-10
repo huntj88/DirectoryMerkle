@@ -1,0 +1,33 @@
+{
+  "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir",
+  "children" : [ {
+    "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/file2.txt",
+    "hash" : "f80e6faf7ffd6852a92cd17b9cfa72ef"
+  }, {
+    "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/file1.txt",
+    "hash" : "ceb5948c35b0f09a203974f575c8cff7"
+  }, {
+    "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/folder2",
+    "children" : [ ],
+    "hash" : "5ea4f82e193ca429a9424f549d0a6a13"
+  }, {
+    "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/folder1",
+    "children" : [ {
+      "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/folder1/child2",
+      "children" : [ {
+        "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/folder1/child2/folder1child2.txt",
+        "hash" : "d32c8f7fd8d1b9a842b12bdfc58505a0"
+      } ],
+      "hash" : "8250e347214212f4376618c6b6dd7e73"
+    }, {
+      "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/folder1/child1",
+      "children" : [ {
+        "path" : "/Users/jhunt/IdeaProjects/dmerkle/src/main/resources/testDir/folder1/child1/folder1child1.txt",
+        "hash" : "cd9129db325fc0e6c8e2385b19c078ff"
+      } ],
+      "hash" : "9502101542b2172a02304e4b0a245392"
+    } ],
+    "hash" : "233870124d3dc33a43a4fb80ac533ae0"
+  } ],
+  "hash" : "dc7af7f72b5210810b50668acf67ab27"
+}

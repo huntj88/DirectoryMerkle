@@ -1,14 +1,19 @@
 package me.jameshunt.merkle
 
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import org.apache.commons.codec.digest.DigestUtils
 import java.io.File
 
 fun main() {
-    val rootFile = File("src/main/resources")
+
+    val existing = File("src/main/resources/existing.json").treeFromJson()
+
+
+    val rootFile = File("src/main/resources/testDir")
     val tree = Tree(rootFile)
-    println(tree.isSame(Tree(rootFile)))
+    println(tree.isSame(existing))
 
     ObjectMapper()
         .apply { this.configure(SerializationFeature.INDENT_OUTPUT, true) }
@@ -22,6 +27,31 @@ class Tree(internal val folderNode: FolderNode) {
     fun isSame(other: Tree): Boolean = folderNode.hash == other.folderNode.hash
 }
 
+private fun File.treeFromJson(): Tree {
+    val json = ObjectMapper().readValue<JsonObject>(this.readText(), object : TypeReference<JsonObject>() {})
+    return Tree(json.treeFromJson() as FolderNode)
+}
+
+typealias JsonObject = Map<String, Any?>
+
+private fun JsonObject.treeFromJson(): Node {
+    return when (this["children"] != null) {
+        true -> {
+            val childrenNodes = (this["children"] as List<JsonObject>).map { it.treeFromJson() }
+            FolderNode(
+                path = this["path"] as String,
+                children = childrenNodes.toMutableList(),
+                _hash = this["hash"] as String
+            )
+        }
+        false -> {
+            FileNode(
+                path = this["path"] as String,
+                hash = this["hash"] as String
+            )
+        }
+    }
+}
 
 private fun File.buildTree(): FolderNode {
     val rootNode = FolderNode("", mutableListOf())
@@ -82,10 +112,12 @@ data class FileNode(
 
 data class FolderNode(
     override val path: String,
-    val children: MutableList<Node>
+    val children: MutableList<Node>,
+    private var _hash: String? = null
 ) : Node {
     override val hash: String
-        get() = children
+        get() = _hash ?: children
             .joinToString("") { it.hash }
             .let { DigestUtils.md5Hex(path + it) }
+            .also { _hash = it }
 }
