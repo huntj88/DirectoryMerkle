@@ -13,7 +13,10 @@ fun main() {
 
     val rootFile = File("src/main/resources/testDir")
     val tree = Tree(rootFile)
-    println(tree.isSame(existing))
+    println("isSame: ${tree.isSame(existing)}")
+    existing.run {
+        this.folderNode.compareFolders(tree.folderNode)
+    }
 
     ObjectMapper()
         .apply { this.configure(SerializationFeature.INDENT_OUTPUT, true) }
@@ -25,6 +28,53 @@ class Tree(internal val folderNode: FolderNode) {
     constructor(folder: File) : this(folder.buildTree())
 
     fun isSame(other: Tree): Boolean = folderNode.hash == other.folderNode.hash
+
+    fun FolderNode.compareFolders(other: FolderNode) {
+        when (this.hash == other.hash) {
+            true -> println("no differences")
+            false -> {
+                val noMatchLocal = this.children.filter { localNode ->
+                    other.children.firstOrNull { it.hash == localNode.hash } == null
+                }
+
+                val noMatchOther = other.children.filter { otherNode ->
+                    this.children.firstOrNull { it.hash == otherNode.hash } == null
+                }
+
+                val noMatchLocalFolders = noMatchLocal.mapNotNull { it as? FolderNode }
+                val noMatchLocalFiles = noMatchLocal.mapNotNull { it as? FileNode }
+
+                val noMatchOtherFolders = noMatchOther.mapNotNull { it as? FolderNode }
+                val noMatchOtherFiles = noMatchOther.mapNotNull { it as? FileNode }
+
+                noMatchLocalFiles.forEach {
+                    if (noMatchOtherFiles.map { it.path }.contains(it.path)) {
+                        println("File changed: ${it.path}")
+                    } else {
+                        println("File removed: ${it.path}")
+                    }
+                }
+
+                noMatchOtherFiles.forEach {
+                    if (!noMatchLocalFiles.map { it.path }.contains(it.path)) {
+                        println("File added: ${it.path}")
+                    }
+                }
+
+                noMatchLocalFolders.forEach { localFolder ->
+                    noMatchOtherFolders.firstOrNull { localFolder.path == it.path }?.let {
+                        localFolder.compareFolders(it)
+                    } ?: println("deleted folder: ${localFolder.path}")
+                }
+
+                noMatchOtherFolders.map { it.path }.forEach { otherPath ->
+                    if (!noMatchLocalFolders.map { it.path }.contains(otherPath)) {
+                        println("added folder: $otherPath")
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun File.treeFromJson(): Tree {
