@@ -8,19 +8,16 @@ import java.io.File
 
 fun main() {
 
-    val existing = File("src/main/resources/existing.json").treeFromJson()
-
-
-    val rootFile = File("src/main/resources/testDir")
-    val tree = Tree(rootFile)
-    println("isSame: ${tree.isSame(existing)}")
-    existing.run {
-        this.folderNode.compareFolders(tree.folderNode)
+    val existingTree = File("src/main/resources/existing.json").treeFromJson()
+    val directoryTree = Tree(File("src/main/resources/testDir"))
+    println("isSame: ${directoryTree.isSame(existingTree)}")
+    existingTree.run {
+        this.folderNode.compareFolders(directoryTree.folderNode)
     }
 
     ObjectMapper()
         .apply { this.configure(SerializationFeature.INDENT_OUTPUT, true) }
-        .writeValueAsString(tree.folderNode).let { println(it) }
+        .writeValueAsString(directoryTree.folderNode).let { println(it) }
 }
 
 class Tree(internal val folderNode: FolderNode) {
